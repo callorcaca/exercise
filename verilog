@@ -1,0 +1,619 @@
+verilog
+
+module block(a,b,c,d);
+	input a,b;
+	output c,d;
+
+assign c = a | b;
+assign d = a & b;
+
+endmodule
+
+and #2 u1(a,b,c)
+
+time_count #(
+	
+	.MAX_NUM    (TIME_SHOW)
+
+) u_time_count(
+	.clk    (sys_clk),
+	.rst_n	(sys_rst_n),
+	.flag	(add_flag)
+
+
+);
+always @(posedge sys_clk or negedge sys_rst_n) begin
+end
+
+always @(*) begin
+end
+
+b = a;
+b <=a;
+
+always @ (posedge clk or negedge rst_n) begin
+if (!rst_n)
+	seg_led <= 8'b0;
+else begin
+	case (num)
+	4'h0: seg_led <= 8'b1100_8000;
+	default: seg_led <= 8'b1100_7000;
+	endcase
+	end
+end
+
+casez(sel)
+8' b1100_zzzz:
+8' b1100_xxzz:
+
+看5个小时
+//流水灯模块
+module flow_led{
+	input	sys_clk50,
+	input	rst_n,
+
+	output	reg [3:0]	led
+};
+
+reg [23:0] cnt;
+always @ (posedge sys_clk50 or negedge rst_n)begin
+if(!rst_n)
+	cnt <= 1'b0;
+else
+	if(cnt<24'd100000000)
+		cnt <=cnt + 1'b1;
+	else
+		cnt <= 24'd0;
+end
+always @ (posedge sys_clk50 or negedge rst_n)begin
+if(!rst_n)
+	led <= 4'b0001;
+else
+	if(cnt == 24'd10000000)
+		led <= {led[2:0],led[3]};
+	else
+		led <= led;
+end
+
+
+endmodule
+//按键控制led灯实验
+/*无按键 四个led全灭
+按下key0 自右向左的流水灯
+key1	自左向右
+key2	四个led同时闪烁
+key3	四个led全亮
+*/
+module key_led(
+	input clk;
+	input rst_n,
+
+	input [3:0] key,
+	output [3:0] led
+);
+reg [23:0] cnt;
+reg [1:0]	le_ctrl;
+//根据按键改变各个状态下所点亮的led
+always @(posedge clk or negedge rst_n)begin
+if(!rst_n)
+led <= 4'b0000;
+else
+	if(key[0] == 1'b0)
+	case(led_ctrl)
+		2'd0: led <= 4'b1000;	//从右向左
+		2'd0: led <= 4'b0100;
+		2'd0: led <= 4'b0010;
+		2'd0: led <= 4'b1001;
+	endcase
+	else if(key[1] == 1'b0)
+	case(led_ctrl)
+		2'd0: led <= 4'b0001;
+		2'd0: led <= 4'b0010;//从左向右
+		2'd0: led <= 4'b0100;
+		2'd0: led <= 4'b1000;
+	endcase
+
+endmodule
+//按键控制蜂鸣器
+module key_debounce(
+	input clk,
+	input rst_n,
+
+	input key,
+	output reg key_value,
+	output reg key_flag
+
+);
+reg 		key_reg;
+reg [19:0]	delay_cnt;
+always @ (posedge clk or negedge rst_n)begin
+	if(!rst_n)begin
+		key_reg <= 1'b1;
+		delay_cnt <=20'd0;
+	end
+	else begin
+		key_reg <= key;
+		if(key != key_reg)
+			delay_cnt<= 20'd1000_000;
+		else begin
+			if(delay_cnt > 20'd0)
+				delay_cnt <= delay_cnt-1'b1;
+			else delay_cnt <=20'd0;
+		end
+	end
+end
+always @ (posedge clk or negedge rst_n)begin
+	if(!rst_n)begin
+		key_value <= 1'b1;
+		key_flag <= 1'b0;
+	end
+	else begin
+		if(delay_cnt ==20'd1)begin
+			key_flag <= 1'b1;
+			key_value <= key;
+		end
+		else begin
+			key_flag <= 1'b0;
+			key_value <= key_value;
+		end
+	end
+end
+endmodule
+
+module top_key_beep();
+
+endmodule
+
+//触摸按键控制led
+module touch_led(
+	input clk,
+	input rst_n,
+
+	input touch_key,
+	output reg led
+);
+
+reg touch_key_d0;
+reg touch_key_d1;
+
+wire touch_key_flag;
+assign touch_key_flag = (~touch_key_d1)&touch_key_d0;
+
+always @(posedge clk or negedge rst_n)begin
+	if(!rst_n)begin
+		touch_key_d0 = 1'b0;
+		touch_key_d1= 1'b0;
+	end
+	else begin
+		touch_key_d0 <= touch_key;
+		touch_key_d1 < = touch_key_d0;
+	end
+
+end
+
+endmodule
+
+//数码管静态显示实验
+reg [3:0] num;
+always @(posedge clk or negedge rst_n)begin
+	if(!rst_n)
+	num <= 4'h0;
+	else if (add_flag) begin
+		if(num < 4'hf)
+			num <= num + 1'b1;
+		else
+			num <= 4'h0;
+	end
+	else
+		num <= num;
+
+end
+always @(posedge clk or negedge rst_n)begin
+	if(!rst_n)
+		sel <= 6'b111111;
+	else
+		sel <= 6'b000000;
+end
+//根据数码管显示的数值，控制段选信号
+always @(posedge clk or negedge rst_n)begin
+	if(!rst_n)
+	seg_led <= 8'b0;
+	else begin
+		case(num)
+		4'h0:seg_led <= 8'b1100_0000;
+		...
+		...
+		default: seg_led <= 8'b1100_0000;
+		endcase
+	end
+
+end
+parameter MAX_NUM = 25000_000;
+reg [24:0] cnt;
+always @(posedge clk or negedge rst_n)begin
+	if(!rst_n)begin
+		flag<= 1'b0;
+		cnt <=24'b0
+	end
+	else if (cnt<MAX_NUM - 1'b1) begin
+		cnt <= cnt+1'b1;
+		flag<=1'b0;
+
+	end
+	else begin
+	cnt <= 24'b0;
+	flag <= 1'b1;
+	end
+end
+//数码管动态显示
+output reg[19:0] data	//6个数码管要显示的数值
+output reg [5:0]	point //小数点的位置，高电平时点亮对应数码管位上的小数点
+output reg 			en //数码管使能信号
+output reg 			sign//符号位，高电平时显示负号，低电平不显示负号
+
+count u_count(
+	.clk (sys_clk),
+	.rst_n (sys_rst_n),
+
+	.data (data),//6位数码管要显示的数值
+	.point (point),
+	.en (en),
+	.sign (sign)
+);
+//数码管动态显示模块
+seg_led u_seg_led(
+	.seg_sel(seg_sel), //位选
+	.seg_led (seg_led) //段选
+);
+//计数器对系统时钟计数达10ms时，输出一个时钟周期的脉冲信号
+//数码管需要显示的数据，从0累加到999999
+localparam CLK_DIVIDE = 4'd10;//时钟分频系数
+localparam MAX_NUM = 13'd5000;//对数码管驱动时钟计数1ms所需的计数值
+
+//PLL锁相环实验
+module ip_pll(
+	input sys_clk,
+	input sys_rst_n,
+
+	output clk_100m,
+	output clk_100m_180deg,
+	output clk_50m,
+	output clk_25m
+
+
+);
+assign rst_n = sys_rst_n & locked;
+pll_clk u_pll_clk(
+
+	.areset (sys_rst_n),
+	.inclk0(sys_clk)
+	.c0
+	.c1
+	.c2
+	.c3
+	.locked
+
+);
+
+endmodule
+//RAM读写操作
+module ip_ram(
+	input sys_clk;
+	input sys_rst_n
+
+);
+wire ram_wr_en;
+wire ram_rd_en;
+wire [4:0] ram_addr;
+wire [7:0] ram_wr_data;
+wire [7:0] ram_rd_data;
+
+ram_rw u_ram_rw(
+	.clk (sys_clk),
+	.rst_n (sys_rst_n),
+
+	.ram_wr_en(ram_wr_en),
+	.ram_rd_en(ram_rd_en),
+	.ram_addr(ram_addr),
+	.ram_wr_data(ram_wr_data),
+	.ram_rd_data(ram_rd_data)
+
+);
+ram_1port u_ram_1port(
+	.address (ram_addr),
+	.clock (sys_clk),
+	.data (ram_wr_data),
+	.rden (ram_rd_en),
+	.q (ram_rd_data)
+);
+
+module ram_rw(
+	input clk,
+	input rst_n,
+
+	output ram_wr_en,
+	output ram_rd_en,
+	output reg [4:0] ram_addr,	//ram读写地址
+	output reg [7:0] ram_wr_data,
+
+	input [7:0] ram_rd_data
+
+);
+reg [5:0] rw_cnt;	//读写控制器
+assign ram_wr_en = ((rw_cnt >= 6'd0) && (rw_cnt <= 6'd31) ? 1'b1 : 1'b0)
+assign ram_rd_en = ((rw_cnt >= 6'd32)&& (rw_cnt <= 6'd63) ? 1'b1 : 1'b0)
+always @ (posedge clk or negedge rst_n) begin
+	if(rst_n == 1'b0)
+		rw_cnt <= 6'd0;
+	else if (rw_cnt == 6'd63)
+		rw_cnt <= 6'd0;
+	else
+		rw_cnt <= rw_cnt+ 6'd1;
+end
+//fifo实验
+//空信号 满信号
+module fifo_wr(
+	input clk,
+	input rst_n,
+
+	input wrempty, //写空信号
+	input wrfull, //写满信号
+	output reg [7:0] data,
+	output reg wrreg //写请求
+);
+reg [1:0] flow_cnt;	//状态流转计数 状态机的状态
+ always @(posedge clk or negedge rst_n)begin
+
+ 	if(!rst_n) begin
+ 		wrreq <= 1'b0;
+ 		data <= 8'd0;
+ 		flow_cnt <= 2'd0;
+ 	end
+ 	else begin 
+ 		case(flow_cnt)
+ 			2'd0:begin
+ 				if(wrempty)begin
+ 					wrreq <= 1'b1;
+ 					flow_cnt <= flow_cnt + 1'b1;
+
+ 				end
+ 				else
+ 					flow_cnt <= flow_cnt;
+ 			end
+ 			2'd1:begin
+ 				if(wrfull)begin		//写满时 写请求拉低
+ 					wrreq <= 1'b0;
+ 					data <= 8'd0;
+ 					flow_cnt <= 2'd0;
+
+ 				end
+ 				else begin	//没有写满时，写请求拉高，继续输入数据
+ 					wrreq <= 1'b1;
+ 					data <= data + 1'd1;
+ 				end
+ 			end
+ 			default: flow_cnt<=2'd0;
+ 		endcase
+ 	end
+ end
+
+//串口实验
+//异步串口通信uart	同步通信 异步通信
+//串口环回实验
+
+//VGA彩条显示实验
+module vga_colorbar(
+	input sys_clk,
+	input sys_rst_n,	//复位信号
+
+	output vga_hs,
+	output vga_vs,	//场同步信号
+	output[15:0] vga_rgb
+);
+wire vga_clk_w	//PLL分频得到25Mhz时钟
+wire locked_w;	//PLL输出稳定信号
+wire rst_n_w;	//内部复位信号
+wire [15:0] pixel_data_w; //像素数据点
+wire [5:0] pixel_xpos_w; //像素点横坐标
+wire [5:0] pixel_ypos_w;	//像素点纵坐标
+//时钟分频模块
+vga_pll u_vga_pll(
+	.inclk0 (sys_clk),
+	.areset (~sys_rst_n),
+
+	.c0 (vga_clk_w)	//vga时钟
+	.locked (locked_w)
+);
+assign rst_n_w= sys_rst_n && locked_w; //待PLL输出稳定之后，停止复位
+vga_driver u_vga_driver(
+	.vga_clk (vg_clk_w),
+	.sys_rst_n	(rst_n_w),
+	.vga_hs (vga_hs),
+	.vga_vs (vga_vs)m
+	.vga_rgb (vga_rgb),
+	.pixel_data (pixel_data_w),
+	.pixel_xpos (pixel_xpose_w),
+	.pixel_ypos (pixel_ypose_w)
+);
+vga_display u_vga_display(
+	.vga_clk (vga_clk_w),
+	.sys_rst_n (rst_n_w),
+	.pixel_xpose (pixel_xpos_w),
+	.pixel_ypose (pixel_ypos_w),
+	.pixel_data (pixel_data_w)
+);
+endmodule
+module vga_driver (
+	input vga_clk;
+	input sys_rst_n;
+	output vga_hs;
+	output vga_vs;
+	output [15:0] vga_rgb; //红绿蓝三原色输出
+
+	input [15:0] pixel_data//像素点数据
+	output  [9:0] pixel_xpose
+	output [9:0] pixel_ypose
+);
+parameter H_SYNC = 10'd96;//行同步
+parameter H_BACK = 10'd48;//行显示后沿
+parameter H_DISP = 10'd640;//行有效数据
+parameter H_FRONT = 10'd16;//行显示前沿
+parameter H_TOTAL = 10'd800; //行扫描周期
+
+parameter V_SYNC = 10'd96;//行同步
+parameter V_BACK = 10'd48;//行显示后沿
+parameter V_DISP = 10'd640;//行有效数据
+parameter V_FRONT = 10'd16;//行显示前沿
+parameter V_TOTAL = 10'd800; //行扫描周期
+
+reg [9:0] cnt_h; //行计数器
+reg [9:0] cnt_v; //场计数器
+wire vga_en;
+wire data_req;
+//行计数器对像素时钟计数
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)
+		cnt_h <= 10'd0;
+	else begin
+		if(cnt_h < H_TOTAL-1'b1)
+			cnt_h <= cnt_h + 1'b1';
+		else
+			cnt_h <= 10'd0;
+	end
+
+end
+//场计数器对场计数
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)
+		cnt_h <= 10'd0;
+	else begin
+		if(cnt_h < H_TOTAL-1'b1)
+			cnt_h <= cnt_h + 1'b1';
+		else
+			cnt_h <= 10'd0;
+	end
+
+end
+assign vga_hs = (cnt_h <= H_SYNC -1'b1)? 1'b0:1'b1;
+assign vga_vs = (cnt_v <= V_SYNC -1'b1)? 1'b0:1'b1;
+assign vga_en = (((cnt_h >= H_SYNC+H_BACK)&&(cnt_h<H_SYNC+H_BACK+H_DISP))&& (cnv_v >= V_SYNC+V_BACk)&&(cnt_v<V_SYNC + V_BACK+V_DISP))? 1'b1:1'b0;
+assign vga_rgb = vga_en?pixel_data:16'd0;
+//请求像素点颜色数据输入
+
+assign data_req = (((cnt_h >= H_SYNC+H_BACK-1'b1)&&(cnt_h<H_SYNC+H_BACK+H_DISP-1'b1))&& (cnv_v >= V_SYNC+V_BACk)&&(cnt_v<V_SYNC + V_BACK+V_DISP))? 1'b1:1'b0;
+
+//像素点坐标
+assign pixel_xpos = data_req ? (cnt_h -(H_SYNC+H_BACK-1'b1)):10:d0;
+assign pixel_ypos = data_req? (cnt_v -(V_SYNC+V_BACK+V_DISP))?1'b1:1'b0;
+endmodule
+module vga_display (
+	input vga_clk,
+	input sys_rst_n,
+
+	input [9:0] pixel_xpos;
+	input [9:0] pixel_ypos;
+	output reg [15:0] pixel_data
+);
+parameter H_DISP;
+parameter V_DISP;
+localparam white =;
+
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)
+		pixel_data <= 16'd0;
+	else begin
+		if((pixel_xpos >= 0) && (pixel_xpos <= (H_DISP/5)*1 ))
+		pixel_data <= white;
+end
+endmodule
+//VGA方块移动实验 display
+wire move_en;	//方块移动使能信号，频率位100hz
+reg h_direct;
+reg v_direct;
+assign move_en = (div_cnt == 22'd250000-1'b1)?1'b1:1'b0;
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)
+		div_cnt <= 22'd0;
+	else begin
+		if(div_cnt < 22'd250000-1'b1)
+			div_cnt <= div_cnt+1'b1;
+		else
+			div_cnt <= 22'd0;
+	end
+end
+//方块移动到边界时，改变移动方向
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)begin
+		h_direct <= 1'b1;
+		v_direct <= 1'b1;
+	end
+	else begin
+		if(block_x == SIDE_W=1'b1)
+			h_direct <= 1'b1;
+		else
+		if (block_x == H_DISP - SIDE_W - BLOCK_W)
+			h_direct <= 1'b0;
+		else 
+			h_direct <= h_direct;
+		if(block y == SIDE_W -1'b1)
+			v_direct <= 1'b1;
+		else
+		if(block_y == V_DISP - SIDE_W - BLOCK_W)
+			v_direct <= 1'b0;
+
+	end
+end
+//给不同的区域绘制不同的颜色
+always @(posedge vga_clk or negedge sys_rst_n)begin
+	if(!sys_rst_n)
+		pixel_data <= black;
+	else begin
+		if((pixel_xpose < SIDE_W) || (pixel_xpose >= H_DISP-SIDE_W)||(pixel_ypos <SIDE_W)||(pixel_ypos >= V_DISP - SIDE_W))
+			pixel_data <= BLUE;	//绘制边框
+		else 
+		if((pixel_xpos >=block_x) &&(pixel_xpos < block_x + BLOCK_W) &&(pixel_ypos >= block_y)&&(pixel_ypos < block_y + block_w) )
+	end
+end
+
+//block_w 方块宽度 side_w边框宽度 block_x方块左上角横坐标 block_y方块左上角纵坐标 h_direct 1水平右移 v_direct
+
+endmodule
+//vga字符显示实验
+//wire [15:0] pixel_data_w 像素点数据
+//wire [9:0] pixel_xpos_w 像素点横坐标
+//wire [9:0] pixel_ypos_w 像素点纵坐标
+//reg [63:0] char [15:0];
+//vga 图片显示实验
+/*romip 核初始化方法
+width = 8;
+depth= 16;
+address_radix = uns;
+data_radix = uns;
+
+content begin 
+0 : 0 ,
+1 : 1 ,
+end;
+*/
+
+// pos_x 图片区域起始点横坐标pos_y 纵坐标
+/*
+	width 图片宽度 heigh 高度
+	total 图片总像素数 black 屏幕背景颜色
+	wire rom_re_en;读rom使能信号 
+	reg [13:0] rom_addr;读rom地址
+	reg rom_valid; 读rom数据有效信号
+	wire[15:0] rom_data; rom输出数据
+*/
+//RGB TFT-LCD 彩条显示
+//RGB TFT-LCD 字符显示实验
+
+
+
+
+https://edu-image.nosdn.127.net/FC913EB220DE53FF964CB3E640616286.jpg?imageView&thumbnail=426y240&quality=100
+
+
+
+
+
